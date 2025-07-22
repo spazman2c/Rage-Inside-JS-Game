@@ -33,10 +33,12 @@ export class Player {
     
     async createRealisticPlayer() {
         if (!this.playerLoader) {
+            console.log('❌ No playerLoader available, using fallback mesh');
             this.createPlayerMesh();
             return;
         }
         
+        console.log(`🎮 Creating realistic player of type: ${this.playerType}`);
         // Create player instance using the loader
         this.playerInstance = this.playerLoader.createPlayerInstance(
             this.playerType,
@@ -45,9 +47,13 @@ export class Player {
         );
         
         if (this.playerInstance) {
+            console.log('✅ Realistic player created successfully');
             this.mesh = this.playerInstance.rootMesh;
             this.physicsImpostor = this.playerInstance.physicsImpostor;
+            console.log('📦 Player mesh:', this.mesh);
+            console.log('⚡ Physics impostor:', this.physicsImpostor);
         } else {
+            console.log('❌ Failed to create realistic player, using fallback');
             // Fallback to simple mesh
             this.createPlayerMesh();
         }
@@ -64,17 +70,21 @@ export class Player {
         playerMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0);
         this.mesh.material = playerMaterial;
         
-        // Add physics to player
-        try {
-            this.mesh.physicsImpostor = new BABYLON.PhysicsImpostor(
-                this.mesh,
-                BABYLON.PhysicsImpostor.BoxImpostor,
-                { mass: 1, restitution: 0.9 },
-                this.scene
-            );
-        } catch (error) {
-            console.warn('Physics not available for player:', error);
-        }
+        // Add physics to player (disabled for now)
+        // try {
+        //     if (this.scene.getPhysicsEngine()) {
+        //         this.mesh.physicsImpostor = new BABYLON.PhysicsImpostor(
+        //             this.mesh,
+        //             BABYLON.PhysicsImpostor.BoxImpostor,
+        //             { mass: 1, restitution: 0.9 },
+        //             this.scene
+        //         );
+        //     } else {
+        //         console.warn('Physics engine not available for player');
+        //     }
+        // } catch (error) {
+        //     console.warn('Physics not available for player:', error);
+        // }
     }
     
     setupControls() {
@@ -100,6 +110,7 @@ export class Player {
     }
     
     handleKeyDown(event) {
+        console.log('KeyDown:', event.code);
         switch (event.code) {
             case 'KeyW':
             case 'ArrowUp':
@@ -127,9 +138,11 @@ export class Player {
                 this.controls.exitVehicle = true;
                 break;
         }
+        console.log('Controls after keydown:', this.controls);
     }
     
     handleKeyUp(event) {
+        console.log('KeyUp:', event.code);
         switch (event.code) {
             case 'KeyW':
             case 'ArrowUp':
@@ -157,6 +170,7 @@ export class Player {
                 this.controls.exitVehicle = false;
                 break;
         }
+        console.log('Controls after keyup:', this.controls);
     }
     
     setupCamera() {
@@ -169,7 +183,7 @@ export class Player {
     
     update() {
         if (!this.mesh || this.inVehicle) return;
-        
+        console.log('Update: controls =', this.controls, 'position =', this.mesh.position, 'rotation =', this.mesh.rotation);
         this.handleMovement();
         this.handleVehicleInteraction();
         this.updatePlayerAnimation();
@@ -207,12 +221,9 @@ export class Player {
             moved = true;
         }
         
-        // Handle jumping
+        // Handle jumping (simplified without physics)
         if (this.controls.jump && this.mesh.position.y <= 1.1) {
-            this.mesh.physicsImpostor.applyImpulse(
-                new BABYLON.Vector3(0, 10, 0),
-                this.mesh.getAbsolutePosition()
-            );
+            this.mesh.position.y += 0.5; // Simple jump without physics
         }
         
         // Apply gravity

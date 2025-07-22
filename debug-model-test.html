@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Loading Debug</title>
+    <style>
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+        #debug-info { 
+            position: fixed; 
+            top: 10px; 
+            left: 10px; 
+            background: rgba(0,0,0,0.8); 
+            color: white; 
+            padding: 10px; 
+            border-radius: 5px;
+            max-width: 400px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="debug-info">
+        <h3>Model Loading Debug</h3>
+        <div id="status">Loading...</div>
+        <div id="details"></div>
+    </div>
+    
+    <script type="module">
+        import * as BABYLON from 'https://cdn.babylonjs.com/babylon.js';
+        import 'https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js';
+        
+        const statusDiv = document.getElementById('status');
+        const detailsDiv = document.getElementById('details');
+        
+        function updateStatus(message, isError = false) {
+            statusDiv.innerHTML = message;
+            statusDiv.style.color = isError ? '#ff6b6b' : '#51cf66';
+            console.log(message);
+        }
+        
+        function addDetail(message) {
+            detailsDiv.innerHTML += '<div>' + message + '</div>';
+            console.log(message);
+        }
+        
+        async function testModelLoading() {
+            updateStatus('🔍 Starting model loading debug...');
+            
+            // Create a simple scene
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 600;
+            document.body.appendChild(canvas);
+            
+            const engine = new BABYLON.Engine(canvas, true);
+            const scene = new BABYLON.Scene(engine);
+            
+            // Create camera
+            const camera = new BABYLON.ArcRotateCamera('camera', 0, Math.PI / 3, 10, BABYLON.Vector3.Zero(), scene);
+            camera.attachControl(canvas, true);
+            
+            // Create light
+            const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0, 1, 0), scene);
+            
+            // Test model loading
+            const modelPath = 'http://localhost:3001/assets/models/characters/male/male.glb';
+            addDetail(`🎯 Attempting to load model from: ${modelPath}`);
+            
+            try {
+                updateStatus('⏳ Loading model...');
+                const result = await BABYLON.SceneLoader.ImportAsync('', modelPath, scene);
+                updateStatus('✅ Model loaded successfully!');
+                
+                addDetail(`📦 Meshes: ${result.meshes.length}`);
+                addDetail(`🎬 Animations: ${result.animationGroups?.length || 0}`);
+                addDetail(`📁 Skeletons: ${result.skeletons?.length || 0}`);
+                
+                if (result.meshes.length > 0) {
+                    const rootMesh = result.meshes[0];
+                    addDetail(`🏠 Root mesh: ${rootMesh.name}`);
+                    addDetail(`📍 Position: ${rootMesh.position.x.toFixed(2)}, ${rootMesh.position.y.toFixed(2)}, ${rootMesh.position.z.toFixed(2)}`);
+                    addDetail(`🔄 Rotation: ${rootMesh.rotation.x.toFixed(2)}, ${rootMesh.rotation.y.toFixed(2)}, ${rootMesh.rotation.z.toFixed(2)}`);
+                    addDetail(`📏 Scaling: ${rootMesh.scaling.x.toFixed(2)}, ${rootMesh.scaling.y.toFixed(2)}, ${rootMesh.scaling.z.toFixed(2)}`);
+                    
+                    // Make the model visible
+                    rootMesh.setEnabled(true);
+                    
+                    // Play animation if available
+                    if (result.animationGroups && result.animationGroups.length > 0) {
+                        result.animationGroups[0].play();
+                        addDetail(`▶️ Playing animation: ${result.animationGroups[0].name}`);
+                    }
+                }
+                
+            } catch (error) {
+                updateStatus('❌ Failed to load model', true);
+                addDetail(`Error: ${error.message}`);
+                addDetail(`Type: ${error.name}`);
+                console.error('Full error:', error);
+            }
+            
+            // Render loop
+            engine.runRenderLoop(() => {
+                scene.render();
+            });
+            
+            window.addEventListener('resize', () => {
+                engine.resize();
+            });
+        }
+        
+        // Run the test
+        testModelLoading();
+    </script>
+</body>
+</html> 

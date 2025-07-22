@@ -1,6 +1,4 @@
 import * as BABYLON from '@babylonjs/core';
-import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
-import '@babylonjs/loaders';
 
 export class VehicleLoader {
     constructor(scene) {
@@ -41,10 +39,10 @@ export class VehicleLoader {
     
     async loadVehicleModel(type, config) {
         try {
-            const modelPath = `/assets/models/vehicles/${type}/${config.model}`;
+            const modelPath = `http://localhost:3001/assets/models/vehicles/${type}/${config.model}`;
             
             // Load the GLB model
-            const result = await SceneLoader.ImportAsync('', modelPath, this.scene);
+            const result = await BABYLON.SceneLoader.ImportAsync('', modelPath, this.scene);
             
             if (result.meshes.length > 0) {
                 // Store the root mesh and configuration
@@ -158,18 +156,22 @@ export class VehicleLoader {
         rootMesh.position = new BABYLON.Vector3(position.x, position.y, position.z);
         rootMesh.rotation = new BABYLON.Vector3(rotation.x || 0, rotation.y || 0, rotation.z || 0);
         
-        // Add physics
+        // Add physics (disabled for now)
         let physicsImpostor = null;
-        try {
-            physicsImpostor = new BABYLON.PhysicsImpostor(
-                rootMesh,
-                BABYLON.PhysicsImpostor.BoxImpostor,
-                { mass: 1000, restitution: 0.3, friction: 0.8 },
-                this.scene
-            );
-        } catch (error) {
-            console.warn('Physics not available for vehicle instance:', error);
-        }
+        // try {
+        //     if (this.scene.getPhysicsEngine()) {
+        //         physicsImpostor = new BABYLON.PhysicsImpostor(
+        //             rootMesh,
+        //             BABYLON.PhysicsImpostor.BoxImpostor,
+        //             { mass: 1000, restitution: 0.3, friction: 0.8 },
+        //             this.scene
+        //         );
+        //     } else {
+        //         console.warn('Physics engine not available for vehicle instance');
+        //     }
+        // } catch (error) {
+        //     console.warn('Physics not available for vehicle instance:', error);
+        // }
         
         return {
             rootMesh: rootMesh,

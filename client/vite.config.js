@@ -11,6 +11,6 @@ export default defineConfig({
     assetsDir: 'assets'
   },
   optimizeDeps: {
-    include: ['@babylonjs/core', '@babylonjs/gui', '@babylonjs/loaders', '@babylonjs/materials', '@babylonjs/physics']
+    include: ['@babylonjs/core', '@babylonjs/gui', '@babylonjs/materials', '@babylonjs/physics']
   }
 }) 

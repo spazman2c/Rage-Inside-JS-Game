@@ -1,6 +1,4 @@
 import * as BABYLON from '@babylonjs/core';
-import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
-import '@babylonjs/loaders';
 
 export class PlayerLoader {
     constructor(scene) {
@@ -23,28 +21,49 @@ export class PlayerLoader {
     }
     
     async preloadPlayerModels() {
+        console.log(`🚀 Starting to preload ${Object.keys(this.playerTypes).length} player models...`);
         const loadPromises = [];
         
         for (const [type, config] of Object.entries(this.playerTypes)) {
+            console.log(`📥 Queueing load for type: ${type} (${config.model})`);
             loadPromises.push(this.loadPlayerModel(type, config));
         }
         
         try {
             await Promise.all(loadPromises);
-            console.log('All player models loaded successfully');
+            console.log('✅ All player models loaded successfully');
+            console.log(`📋 Final loaded models:`, Array.from(this.loadedModels.keys()));
         } catch (error) {
-            console.error('Error loading player models:', error);
+            console.error('❌ Error loading player models:', error);
         }
     }
     
     async loadPlayerModel(type, config) {
         try {
-            // All models are now in the male directory
-            const modelPath = `/assets/models/characters/male/${config.model}`;
-            console.log(`Loading player model from: ${modelPath}`);
+            // All models are now in the male directory - use absolute server URL
+            const modelPath = `http://localhost:3001/assets/models/characters/male/${config.model}`;
+            console.log(`🎯 Loading player model from: ${modelPath}`);
             
             // Load the GLB model
-            const result = await SceneLoader.ImportAsync('', modelPath, this.scene);
+            console.log(`🔧 Trying to load model with SceneLoader...`);
+            console.log(`🔧 SceneLoader available:`, typeof BABYLON.SceneLoader);
+            console.log(`🔧 SceneLoader methods:`, Object.getOwnPropertyNames(BABYLON.SceneLoader));
+            
+            // Try to use a different approach - check if we can load the model directly
+            let result;
+            try {
+                // Try using the standard SceneLoader approach
+                result = await BABYLON.SceneLoader.ImportAsync('', modelPath, this.scene);
+            } catch (error) {
+                console.log(`🔧 SceneLoader.ImportAsync failed, trying alternative...`);
+                // Try using a different method or check if the loaders are available
+                console.log(`🔧 Available BABYLON methods:`, Object.getOwnPropertyNames(BABYLON));
+                throw new Error('SceneLoader.ImportAsync is not available - loaders may not be imported correctly');
+            }
+            
+            console.log(`📦 Model load result:`, result);
+            console.log(`📦 Meshes count:`, result.meshes.length);
+            console.log(`🎬 Animations count:`, result.animationGroups?.length || 0);
             
             if (result.meshes.length > 0) {
                 // Store the root mesh and configuration
@@ -59,17 +78,26 @@ export class PlayerLoader {
                 // Hide the original model (we'll clone it for instances)
                 result.meshes[0].setEnabled(false);
                 
-                console.log(`Loaded player model: ${type} with ${result.meshes.length} meshes and ${result.animationGroups?.length || 0} animations`);
+                console.log(`✅ Loaded player model: ${type} with ${result.meshes.length} meshes and ${result.animationGroups?.length || 0} animations`);
+            } else {
+                console.error(`❌ No meshes found in model for type: ${type}`);
+                this.createFallbackModel(type, config);
             }
         } catch (error) {
-            console.error(`Failed to load player model ${type}:`, error);
-            console.error(`Model path was: /assets/models/characters/male/${config.model}`);
+            console.error(`❌ Failed to load player model ${type}:`, error);
+            console.error(`🔍 Error details:`, {
+                message: error.message,
+                name: error.name,
+                stack: error.stack
+            });
+            console.error(`📁 Model path was: http://localhost:3001/assets/models/characters/male/${config.model}`);
             // Create a fallback human model
             this.createFallbackModel(type, config);
         }
     }
     
     createFallbackModel(type, config) {
+        console.log(`🔧 Creating fallback model for type: ${type}`);
         // Create a detailed human model using primitives
         const rootMesh = new BABYLON.Mesh(`fallback_${type}`, this.scene);
         
@@ -160,8 +188,10 @@ export class PlayerLoader {
         leftHand.material = skinMaterial;
         rightHand.material = skinMaterial;
         
+
+        
         const clothingMaterial = new BABYLON.StandardMaterial(`clothingMat_${type}`, this.scene);
-        clothingMaterial.diffuseColor = this.getClothingColor(type);
+        clothingMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0); // Red color for fallback models
         torso.material = clothingMaterial;
         leftArm.material = clothingMaterial;
         rightArm.material = clothingMaterial;
@@ -217,19 +247,25 @@ export class PlayerLoader {
     }
     
     createPlayerInstance(type, position, rotation) {
+        console.log(`🎮 Creating player instance for type: ${type}`);
+        console.log(`📋 Available loaded models:`, Array.from(this.loadedModels.keys()));
+        
         const modelData = this.loadedModels.get(type);
         if (!modelData) {
-            console.error(`Player type ${type} not found`);
+            console.error(`❌ Player type ${type} not found in loaded models`);
+            console.error(`📋 Available types:`, Array.from(this.loadedModels.keys()));
             return null;
         }
         
-        console.log(`Creating player instance for type: ${type}`);
-        console.log(`Model data:`, modelData);
-        console.log(`Available loaded models:`, Array.from(this.loadedModels.keys()));
+        console.log(`✅ Found model data for type: ${type}`);
+        console.log(`📦 Model data:`, modelData);
         
         // Clone the model
         const clonedMeshes = [];
         const rootMesh = modelData.rootMesh.clone(`player_${type}_${Date.now()}`);
+        
+        console.log(`🔧 Cloning model for player instance`);
+        console.log(`📦 Original meshes count:`, modelData.meshes.length);
         
         // Clone all child meshes
         modelData.meshes.forEach(mesh => {
@@ -240,152 +276,22 @@ export class PlayerLoader {
             }
         });
         
+        console.log(`📦 Cloned meshes count:`, clonedMeshes.length);
+        
         // Set position and rotation
         rootMesh.position = new BABYLON.Vector3(position.x, position.y, position.z);
         rootMesh.rotation = new BABYLON.Vector3(rotation.x || 0, rotation.y || 0, rotation.z || 0);
-        
-        // Add physics
-        let physicsImpostor = null;
-        try {
-            physicsImpostor = new BABYLON.PhysicsImpostor(
-                rootMesh,
-                BABYLON.PhysicsImpostor.CapsuleImpostor,
-                { mass: 70, restitution: 0.1, friction: 0.8 },
-                this.scene
-            );
-        } catch (error) {
-            console.warn('Physics not available for player instance:', error);
-        }
-        
+        // Ensure the mesh is enabled
+        rootMesh.setEnabled(true);
+        // Return the full player instance object
         return {
             rootMesh: rootMesh,
             meshes: clonedMeshes,
-            physicsImpostor: physicsImpostor,
             type: type,
             config: modelData.config,
-            bodyParts: modelData.bodyParts ? this.cloneBodyParts(modelData.bodyParts, rootMesh) : null,
+            bodyParts: modelData.bodyParts || null,
             animations: modelData.animations ? this.cloneAnimations(modelData.animations, rootMesh) : [],
             hasAnimations: modelData.hasAnimations
         };
     }
-    
-    cloneBodyParts(bodyParts, parentMesh) {
-        const clonedParts = {};
-        Object.keys(bodyParts).forEach(partName => {
-            const originalPart = bodyParts[partName];
-            const clonedPart = originalPart.clone(`cloned_${originalPart.name}_${Date.now()}`);
-            clonedPart.parent = parentMesh;
-            clonedParts[partName] = clonedPart;
-        });
-        return clonedParts;
-    }
-    
-    cloneAnimations(animations, parentMesh) {
-        const clonedAnimations = [];
-        animations.forEach(anim => {
-            const clonedAnim = anim.clone();
-            clonedAnimations.push(clonedAnim);
-        });
-        return clonedAnimations;
-    }
-    
-    updatePlayerAnimation(playerInstance, isMoving, isRunning) {
-        // Check if this player instance has animations
-        if (playerInstance.hasAnimations && playerInstance.animations && playerInstance.animations.length > 0) {
-            // Use actual animations from the model
-            this.updateModelAnimations(playerInstance, isMoving, isRunning);
-        } else if (playerInstance.bodyParts) {
-            // Use procedural animations for fallback models
-            this.updateProceduralAnimations(playerInstance, isMoving, isRunning);
-        }
-    }
-    
-    updateModelAnimations(playerInstance, isMoving, isRunning) {
-        // Stop all animations first
-        playerInstance.animations.forEach(anim => {
-            if (anim.isPlaying) {
-                anim.stop();
-            }
-        });
-        
-        if (isMoving) {
-            // Find and play walking/running animation
-            const walkAnim = playerInstance.animations.find(anim => 
-                anim.name.toLowerCase().includes('walk') || 
-                anim.name.toLowerCase().includes('run') ||
-                anim.name.toLowerCase().includes('walking')
-            );
-            
-            if (walkAnim) {
-                walkAnim.loopAnimation = true;
-                walkAnim.play();
-            }
-        } else {
-            // Find and play idle animation
-            const idleAnim = playerInstance.animations.find(anim => 
-                anim.name.toLowerCase().includes('idle') || 
-                anim.name.toLowerCase().includes('standing')
-            );
-            
-            if (idleAnim) {
-                idleAnim.loopAnimation = true;
-                idleAnim.play();
-            }
-        }
-    }
-    
-    updateProceduralAnimations(playerInstance, isMoving, isRunning) {
-        const { leftArm, rightArm, leftLeg, rightLeg, torso } = playerInstance.bodyParts;
-        const time = Date.now() * 0.01;
-        
-        if (isMoving) {
-            // Walking/running animation
-            const speed = isRunning ? 0.3 : 0.15;
-            const amplitude = isRunning ? 0.3 : 0.2;
-            
-            // Arm swing
-            if (leftArm) leftArm.rotation.z = Math.sin(time * speed) * amplitude;
-            if (rightArm) rightArm.rotation.z = -Math.sin(time * speed) * amplitude;
-            
-            // Leg movement
-            if (leftLeg) leftLeg.rotation.z = Math.sin(time * speed) * amplitude;
-            if (rightLeg) rightLeg.rotation.z = -Math.sin(time * speed) * amplitude;
-        } else {
-            // Idle animation - subtle breathing
-            const breathing = Math.sin(time * 0.5) * 0.02;
-            if (torso) {
-                torso.rotation.z = breathing;
-            }
-        }
-    }
-    
-    setPlayerClothing(playerInstance, clothingType) {
-        if (!playerInstance.meshes) return;
-        
-        const clothingColors = {
-            casual: new BABYLON.Color3(0.2, 0.4, 0.8),   // Blue
-            formal: new BABYLON.Color3(0.1, 0.1, 0.1),    // Black
-            sport: new BABYLON.Color3(0.8, 0.2, 0.2),     // Red
-            police: new BABYLON.Color3(0.2, 0.2, 0.2)     // Dark gray
-        };
-        
-        const color = clothingColors[clothingType] || clothingColors.casual;
-        
-        // Find torso and arm meshes and change their color
-        playerInstance.meshes.forEach(mesh => {
-            if (mesh.name.includes('torso') || mesh.name.includes('Arm') || mesh.name.includes('Leg')) {
-                if (mesh.material) {
-                    mesh.material.diffuseColor = color;
-                }
-            }
-        });
-    }
-    
-    getAvailableTypes() {
-        return Object.keys(this.playerTypes);
-    }
-    
-    getPlayerConfig(type) {
-        return this.playerTypes[type];
-    }
-} 
+}

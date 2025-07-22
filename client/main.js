@@ -1,4 +1,5 @@
 import * as BABYLON from '@babylonjs/core';
+import '@babylonjs/loaders';
 import { io } from 'socket.io-client';
 import { World } from './world.js';
 import { Player } from './player.js';
@@ -7,6 +8,7 @@ import { VehicleLoader } from './vehicleLoader.js';
 import { PlayerLoader } from './playerLoader.js';
 import { Mission } from './mission.js';
 import { UI } from './ui.js';
+// import * as CANNON from 'cannon-es';
 
 class Game {
     constructor() {
@@ -45,6 +47,10 @@ class Game {
             this.world = new World(this.scene);
             this.vehicleLoader = new VehicleLoader(this.scene);
             this.playerLoader = new PlayerLoader(this.scene);
+            
+            // Wait for player loader to finish loading models before creating player
+            await this.playerLoader.init();
+            
             this.player = new Player(this.scene, this.socket, this.playerLoader);
             this.ui = new UI();
             
@@ -86,8 +92,8 @@ class Game {
         dirLight.position = new BABYLON.Vector3(20, 40, 20);
         dirLight.intensity = 0.5;
         
-        // Enable physics
-        this.scene.enablePhysics();
+        // Disable physics for now to avoid CANNON errors
+        // this.scene.enablePhysics(null, new BABYLON.CannonJSPlugin());
         
         // Add fog for atmosphere
         this.scene.fogMode = BABYLON.Scene.FOGMODE_EXP;
