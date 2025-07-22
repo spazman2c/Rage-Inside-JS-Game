@@ -126,19 +126,19 @@ export class Vehicle {
         switch (event.code) {
             case 'KeyW':
             case 'ArrowUp':
-                this.controls.forward = true;
+                this.controls.backward = true; // Swapped with S
                 break;
             case 'KeyS':
             case 'ArrowDown':
-                this.controls.backward = true;
+                this.controls.forward = true; // Swapped with W
                 break;
             case 'KeyA':
             case 'ArrowLeft':
-                this.controls.left = true;
+                this.controls.right = true; // Swapped with D
                 break;
             case 'KeyD':
             case 'ArrowRight':
-                this.controls.right = true;
+                this.controls.left = true; // Swapped with A
                 break;
             case 'Space':
                 this.controls.brake = true;
@@ -152,19 +152,19 @@ export class Vehicle {
         switch (event.code) {
             case 'KeyW':
             case 'ArrowUp':
-                this.controls.forward = false;
+                this.controls.backward = false; // Swapped with S
                 break;
             case 'KeyS':
             case 'ArrowDown':
-                this.controls.backward = false;
+                this.controls.forward = false; // Swapped with W
                 break;
             case 'KeyA':
             case 'ArrowLeft':
-                this.controls.left = false;
+                this.controls.right = false; // Swapped with D
                 break;
             case 'KeyD':
             case 'ArrowRight':
-                this.controls.right = false;
+                this.controls.left = false; // Swapped with A
                 break;
             case 'Space':
                 this.controls.brake = false;
@@ -206,33 +206,12 @@ export class Vehicle {
             this.speed *= this.braking;
         }
         
-        // Handle steering - rotate the vehicle based on camera direction
-        if (this.controls.left || this.controls.right) {
-            const camera = this.scene.getCameraByName('camera');
-            if (camera) {
-                const cameraForward = camera.getForwardRay().direction;
-                cameraForward.y = 0;
-                cameraForward.normalize();
-                
-                if (this.controls.left) {
-                    // Rotate left relative to camera
-                    const leftDirection = new BABYLON.Vector3(-cameraForward.z, 0, cameraForward.x);
-                    this.mesh.rotation.y = Math.atan2(leftDirection.x, leftDirection.z);
-                }
-                if (this.controls.right) {
-                    // Rotate right relative to camera
-                    const rightDirection = new BABYLON.Vector3(cameraForward.z, 0, -cameraForward.x);
-                    this.mesh.rotation.y = Math.atan2(rightDirection.x, rightDirection.z);
-                }
-            } else {
-                // Fallback to original steering
-                if (this.controls.left) {
-                    this.mesh.rotation.y += this.turnSpeed * deltaTime * 60 * Math.sign(this.speed);
-                }
-                if (this.controls.right) {
-                    this.mesh.rotation.y -= this.turnSpeed * deltaTime * 60 * Math.sign(this.speed);
-                }
-            }
+        // Handle steering
+        if (this.controls.left) {
+            this.mesh.rotation.y += this.turnSpeed * deltaTime * 60 * Math.sign(this.speed);
+        }
+        if (this.controls.right) {
+            this.mesh.rotation.y -= this.turnSpeed * deltaTime * 60 * Math.sign(this.speed);
         }
         
         // Apply movement

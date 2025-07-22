@@ -27,6 +27,7 @@ export class Player {
         // Create player character
         this.mesh = BABYLON.MeshBuilder.CreateBox('player', { height: 2, width: 1, depth: 1 }, this.scene);
         this.mesh.position = new BABYLON.Vector3(0, 1, 0);
+        this.mesh.rotation = new BABYLON.Vector3(0, 0, 0); // Ensure correct initial rotation
         
         // Create player material
         const playerMaterial = new BABYLON.StandardMaterial('playerMat', this.scene);
@@ -68,19 +69,19 @@ export class Player {
         switch (event.code) {
             case 'KeyW':
             case 'ArrowUp':
-                this.controls.forward = true;
+                this.controls.backward = true; // Swapped with S
                 break;
             case 'KeyS':
             case 'ArrowDown':
-                this.controls.backward = true;
+                this.controls.forward = true; // Swapped with W
                 break;
             case 'KeyA':
             case 'ArrowLeft':
-                this.controls.left = true;
+                this.controls.right = true; // Swapped with D
                 break;
             case 'KeyD':
             case 'ArrowRight':
-                this.controls.right = true;
+                this.controls.left = true; // Swapped with A
                 break;
             case 'Space':
                 this.controls.jump = true;
@@ -98,19 +99,19 @@ export class Player {
         switch (event.code) {
             case 'KeyW':
             case 'ArrowUp':
-                this.controls.forward = false;
+                this.controls.backward = false; // Swapped with S
                 break;
             case 'KeyS':
             case 'ArrowDown':
-                this.controls.backward = false;
+                this.controls.forward = false; // Swapped with W
                 break;
             case 'KeyA':
             case 'ArrowLeft':
-                this.controls.left = false;
+                this.controls.right = false; // Swapped with D
                 break;
             case 'KeyD':
             case 'ArrowRight':
-                this.controls.right = false;
+                this.controls.left = false; // Swapped with A
                 break;
             case 'Space':
                 this.controls.jump = false;
