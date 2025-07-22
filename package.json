@@ -1,0 +1,25 @@
+{
+  "name": "urbanpulse",
+  "version": "1.0.0",
+  "description": "A 3D open world multiplayer game built with Babylon.js",
+  "main": "server/server.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon server/server.js",
+    "client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "node server/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "concurrently": "^8.2.0"
+  },
+  "keywords": ["babylon.js", "game", "multiplayer", "3d", "open-world"],
+  "author": "",
+  "license": "MIT"
+} 

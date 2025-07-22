@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanPulse Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background: #2d5a2d; }
+        .error { background: #5a2d2d; }
+        .info { background: #2d2d5a; }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>UrbanPulse Game Test</h1>
+    
+    <div id="status"></div>
+    
+    <div>
+        <button onclick="testServer()">Test Server Connection</button>
+        <button onclick="testClient()">Test Client Connection</button>
+        <button onclick="openGame()">Open Game</button>
+    </div>
+    
+    <div id="results"></div>
+    
+    <script>
+        function addStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = message;
+            status.appendChild(div);
+        }
+        
+        function testServer() {
+            addStatus('Testing server connection...', 'info');
+            fetch('http://localhost:3001')
+                .then(response => {
+                    if (response.ok) {
+                        addStatus('✅ Server is running on port 3001', 'success');
+                    } else {
+                        addStatus('❌ Server returned error: ' + response.status, 'error');
+                    }
+                })
+                .catch(error => {
+                    addStatus('❌ Server connection failed: ' + error.message, 'error');
+                });
+        }
+        
+        function testClient() {
+            addStatus('Testing client connection...', 'info');
+            fetch('http://localhost:3000')
+                .then(response => {
+                    if (response.ok) {
+                        addStatus('✅ Client is running on port 3000', 'success');
+                    } else {
+                        addStatus('❌ Client returned error: ' + response.status, 'error');
+                    }
+                })
+                .catch(error => {
+                    addStatus('❌ Client connection failed: ' + error.message, 'error');
+                });
+        }
+        
+        function openGame() {
+            addStatus('Opening game in new window...', 'info');
+            window.open('http://localhost:3000', '_blank');
+        }
+        
+        // Auto-test on load
+        window.addEventListener('load', () => {
+            addStatus('UrbanPulse Game Test Page Loaded', 'info');
+            setTimeout(testServer, 1000);
+            setTimeout(testClient, 2000);
+        });
+    </script>
+</body>
+</html> 
