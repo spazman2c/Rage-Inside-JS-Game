@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import { World } from './world.js';
 import { Player } from './player.js';
 import { Vehicle } from './vehicle.js';
+import { VehicleLoader } from './vehicleLoader.js';
 import { Mission } from './mission.js';
 import { UI } from './ui.js';
 
@@ -15,6 +16,7 @@ class Game {
         
         this.world = null;
         this.player = null;
+        this.vehicleLoader = null;
         this.vehicles = new Map();
         this.otherPlayers = new Map();
         this.npcs = new Map();
@@ -39,6 +41,7 @@ class Game {
             
             // Initialize game components
             this.world = new World(this.scene);
+            this.vehicleLoader = new VehicleLoader(this.scene);
             this.player = new Player(this.scene, this.socket);
             this.ui = new UI();
             
@@ -144,7 +147,7 @@ class Game {
     handleGameState(data) {
         // Initialize vehicles
         data.vehicles.forEach(vehicleData => {
-            const vehicle = new Vehicle(this.scene, vehicleData);
+            const vehicle = new Vehicle(this.scene, vehicleData, this.vehicleLoader);
             this.vehicles.set(vehicleData.id, vehicle);
         });
         

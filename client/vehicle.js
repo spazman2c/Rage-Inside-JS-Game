@@ -1,9 +1,11 @@
 import * as BABYLON from '@babylonjs/core';
+import { VehicleLoader } from './vehicleLoader.js';
 
 export class Vehicle {
-    constructor(scene, vehicleData) {
+    constructor(scene, vehicleData, vehicleLoader = null) {
         this.scene = scene;
         this.data = vehicleData;
+        this.vehicleLoader = vehicleLoader;
         this.mesh = null;
         this.physicsImpostor = null;
         this.engine = null;
@@ -16,14 +18,41 @@ export class Vehicle {
         this.turnSpeed = 0.03;
         this.lastPosition = { x: 0, y: 0, z: 0 };
         this.lastRotation = { y: 0 };
+        this.vehicleInstance = null;
         
         this.init();
     }
     
-    init() {
-        this.createVehicleMesh();
+    async init() {
+        if (this.vehicleLoader) {
+            await this.createRealisticVehicle();
+        } else {
+            this.createVehicleMesh();
+        }
         this.setupPhysics();
         this.setupControls();
+    }
+    
+    async createRealisticVehicle() {
+        // Determine vehicle type based on data or random selection
+        const vehicleTypes = this.vehicleLoader.getAvailableTypes();
+        const vehicleType = this.data.type || vehicleTypes[Math.floor(Math.random() * vehicleTypes.length)];
+        
+        // Create vehicle instance using the loader
+        this.vehicleInstance = this.vehicleLoader.createVehicleInstance(
+            vehicleType,
+            { x: this.data.position.x, y: this.data.position.y + 0.75, z: this.data.position.z },
+            { y: this.data.rotation.y }
+        );
+        
+        if (this.vehicleInstance) {
+            this.mesh = this.vehicleInstance.rootMesh;
+            this.wheels = this.vehicleInstance.wheels || [];
+            this.physicsImpostor = this.vehicleInstance.physicsImpostor;
+        } else {
+            // Fallback to simple mesh
+            this.createVehicleMesh();
+        }
     }
     
     createVehicleMesh() {
@@ -229,28 +258,33 @@ export class Vehicle {
     }
     
     updateWheels() {
-        // Update wheel positions to follow vehicle
-        const wheelPositions = [
-            { x: -0.8, y: -0.5, z: -1.5 },
-            { x: 0.8, y: -0.5, z: -1.5 },
-            { x: -0.8, y: -0.5, z: 1.5 },
-            { x: 0.8, y: -0.5, z: 1.5 }
-        ];
-        
-        this.wheels.forEach((wheel, index) => {
-            const pos = wheelPositions[index];
-            wheel.position = new BABYLON.Vector3(
-                this.mesh.position.x + pos.x,
-                this.mesh.position.y + pos.y,
-                this.mesh.position.z + pos.z
-            );
-            wheel.rotation.y = this.mesh.rotation.y;
+        if (this.vehicleInstance && this.vehicleLoader) {
+            // Use the vehicle loader's wheel update method
+            this.vehicleLoader.updateWheels(this.vehicleInstance, this.speed);
+        } else {
+            // Fallback wheel update for simple meshes
+            const wheelPositions = [
+                { x: -0.8, y: -0.5, z: -1.5 },
+                { x: 0.8, y: -0.5, z: -1.5 },
+                { x: -0.8, y: -0.5, z: 1.5 },
+                { x: 0.8, y: -0.5, z: 1.5 }
+            ];
             
-            // Rotate wheels based on speed
-            if (Math.abs(this.speed) > 0.1) {
-                wheel.rotation.z += this.speed * 0.1;
-            }
-        });
+            this.wheels.forEach((wheel, index) => {
+                const pos = wheelPositions[index];
+                wheel.position = new BABYLON.Vector3(
+                    this.mesh.position.x + pos.x,
+                    this.mesh.position.y + pos.y,
+                    this.mesh.position.z + pos.z
+                );
+                wheel.rotation.y = this.mesh.rotation.y;
+                
+                // Rotate wheels based on speed
+                if (Math.abs(this.speed) > 0.1) {
+                    wheel.rotation.z += this.speed * 0.1;
+                }
+            });
+        }
     }
     
     syncPosition() {
