@@ -1,4 +1,5 @@
 import * as BABYLON from '@babylonjs/core';
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import '@babylonjs/loaders';
 
 export class VehicleLoader {
@@ -43,7 +44,7 @@ export class VehicleLoader {
             const modelPath = `/assets/models/vehicles/${type}/${config.model}`;
             
             // Load the GLB model
-            const result = await BABYLON.SceneLoader.ImportAsync('', modelPath, this.scene);
+            const result = await SceneLoader.ImportAsync('', modelPath, this.scene);
             
             if (result.meshes.length > 0) {
                 // Store the root mesh and configuration
@@ -158,12 +159,17 @@ export class VehicleLoader {
         rootMesh.rotation = new BABYLON.Vector3(rotation.x || 0, rotation.y || 0, rotation.z || 0);
         
         // Add physics
-        const physicsImpostor = new BABYLON.PhysicsImpostor(
-            rootMesh,
-            BABYLON.PhysicsImpostor.BoxImpostor,
-            { mass: 1000, restitution: 0.3, friction: 0.8 },
-            this.scene
-        );
+        let physicsImpostor = null;
+        try {
+            physicsImpostor = new BABYLON.PhysicsImpostor(
+                rootMesh,
+                BABYLON.PhysicsImpostor.BoxImpostor,
+                { mass: 1000, restitution: 0.3, friction: 0.8 },
+                this.scene
+            );
+        } catch (error) {
+            console.warn('Physics not available for vehicle instance:', error);
+        }
         
         return {
             rootMesh: rootMesh,

@@ -11,10 +11,11 @@ class GameState {
     
     initializeWorld() {
         // Generate random vehicles
+        const vehicleTypes = ['sedan', 'sports', 'suv', 'truck', 'police', 'taxi'];
         for (let i = 0; i < 20; i++) {
             const vehicle = {
                 id: `vehicle_${this.nextId++}`,
-                type: 'car',
+                type: vehicleTypes[Math.floor(Math.random() * vehicleTypes.length)],
                 position: {
                     x: (Math.random() - 0.5) * 1000,
                     y: 0,
@@ -66,8 +67,10 @@ class GameState {
     }
     
     addPlayer(socketId) {
+        const playerTypes = ['male', 'female', 'police', 'civilian'];
         const player = {
             id: socketId,
+            type: 'male', // Default to male to use the Animation_Walking_withSkin model
             position: {
                 x: (Math.random() - 0.5) * 100,
                 y: 0,

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Access Test</title>
+</head>
+<body>
+    <h1>Model Access Test</h1>
+    <p>Testing if the player model is accessible...</p>
+    
+    <script>
+        // Test if the model file is accessible
+        fetch('/assets/models/characters/male/male.glb')
+            .then(response => {
+                if (response.ok) {
+                    console.log('✅ Model file is accessible');
+                    document.body.innerHTML += '<p style="color: green;">✅ Model file is accessible</p>';
+                } else {
+                    console.log('❌ Model file not found');
+                    document.body.innerHTML += '<p style="color: red;">❌ Model file not found</p>';
+                }
+            })
+            .catch(error => {
+                console.log('❌ Error accessing model file:', error);
+                document.body.innerHTML += '<p style="color: red;">❌ Error accessing model file</p>';
+            });
+    </script>
+</body>
+</html> 

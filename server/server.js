@@ -21,6 +21,9 @@ const gameState = new GameState();
 app.use(cors());
 app.use(express.static(path.join(__dirname, '../client')));
 
+// Serve assets directory
+app.use('/assets', express.static(path.join(__dirname, '../assets')));
+
 // Serve the main page
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/index.html'));

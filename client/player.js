@@ -16,7 +16,7 @@ export class Player {
         this.lastPosition = { x: 0, y: 0, z: 0 };
         this.lastRotation = { y: 0 };
         this.playerInstance = null;
-        this.playerType = 'male'; // Default player type
+        this.playerType = 'male'; // Default player type - uses the Animation_Walking_withSkin model
         
         this.init();
     }
@@ -32,6 +32,11 @@ export class Player {
     }
     
     async createRealisticPlayer() {
+        if (!this.playerLoader) {
+            this.createPlayerMesh();
+            return;
+        }
+        
         // Create player instance using the loader
         this.playerInstance = this.playerLoader.createPlayerInstance(
             this.playerType,
@@ -60,12 +65,16 @@ export class Player {
         this.mesh.material = playerMaterial;
         
         // Add physics to player
-        this.mesh.physicsImpostor = new BABYLON.PhysicsImpostor(
-            this.mesh,
-            BABYLON.PhysicsImpostor.BoxImpostor,
-            { mass: 1, restitution: 0.9 },
-            this.scene
-        );
+        try {
+            this.mesh.physicsImpostor = new BABYLON.PhysicsImpostor(
+                this.mesh,
+                BABYLON.PhysicsImpostor.BoxImpostor,
+                { mass: 1, restitution: 0.9 },
+                this.scene
+            );
+        } catch (error) {
+            console.warn('Physics not available for player:', error);
+        }
     }
     
     setupControls() {
@@ -215,7 +224,7 @@ export class Player {
     }
     
     updatePlayerAnimation() {
-        if (this.playerInstance && this.playerLoader) {
+        if (this.playerInstance && this.playerLoader && this.playerInstance.bodyParts) {
             // Check if player is moving
             const isMoving = this.controls.forward || this.controls.backward || this.controls.left || this.controls.right;
             const isRunning = this.controls.forward && (this.controls.left || this.controls.right);

@@ -1,4 +1,5 @@
 import * as BABYLON from '@babylonjs/core';
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import '@babylonjs/loaders';
 
 export class PlayerLoader {
@@ -7,10 +8,10 @@ export class PlayerLoader {
         this.playerModels = new Map();
         this.loadedModels = new Map();
         this.playerTypes = {
-            male: { model: 'male.glb', scale: 1.0, height: 1.8 },
-            female: { model: 'female.glb', scale: 1.0, height: 1.7 },
-            police: { model: 'police.glb', scale: 1.0, height: 1.8 },
-            civilian: { model: 'civilian.glb', scale: 1.0, height: 1.75 }
+            male: { model: 'male.glb', scale: 1.0, height: 1.8, hasAnimations: true },
+            female: { model: 'male.glb', scale: 1.0, height: 1.7, hasAnimations: true }, // Use male model
+            police: { model: 'male.glb', scale: 1.0, height: 1.8, hasAnimations: true }, // Use male model
+            civilian: { model: 'male.glb', scale: 1.0, height: 1.75, hasAnimations: true } // Use male model
         };
         
         this.init();
@@ -38,10 +39,12 @@ export class PlayerLoader {
     
     async loadPlayerModel(type, config) {
         try {
-            const modelPath = `/assets/models/characters/${type}/${config.model}`;
+            // All models are now in the male directory
+            const modelPath = `/assets/models/characters/male/${config.model}`;
+            console.log(`Loading player model from: ${modelPath}`);
             
             // Load the GLB model
-            const result = await BABYLON.SceneLoader.ImportAsync('', modelPath, this.scene);
+            const result = await SceneLoader.ImportAsync('', modelPath, this.scene);
             
             if (result.meshes.length > 0) {
                 // Store the root mesh and configuration
@@ -49,16 +52,18 @@ export class PlayerLoader {
                     meshes: result.meshes,
                     rootMesh: result.meshes[0],
                     config: config,
-                    animations: result.animationGroups || []
+                    animations: result.animationGroups || [],
+                    hasAnimations: config.hasAnimations
                 });
                 
                 // Hide the original model (we'll clone it for instances)
                 result.meshes[0].setEnabled(false);
                 
-                console.log(`Loaded player model: ${type}`);
+                console.log(`Loaded player model: ${type} with ${result.meshes.length} meshes and ${result.animationGroups?.length || 0} animations`);
             }
         } catch (error) {
-            console.warn(`Failed to load player model ${type}:`, error);
+            console.error(`Failed to load player model ${type}:`, error);
+            console.error(`Model path was: /assets/models/characters/male/${config.model}`);
             // Create a fallback human model
             this.createFallbackModel(type, config);
         }
@@ -218,6 +223,10 @@ export class PlayerLoader {
             return null;
         }
         
+        console.log(`Creating player instance for type: ${type}`);
+        console.log(`Model data:`, modelData);
+        console.log(`Available loaded models:`, Array.from(this.loadedModels.keys()));
+        
         // Clone the model
         const clonedMeshes = [];
         const rootMesh = modelData.rootMesh.clone(`player_${type}_${Date.now()}`);
@@ -236,12 +245,17 @@ export class PlayerLoader {
         rootMesh.rotation = new BABYLON.Vector3(rotation.x || 0, rotation.y || 0, rotation.z || 0);
         
         // Add physics
-        const physicsImpostor = new BABYLON.PhysicsImpostor(
-            rootMesh,
-            BABYLON.PhysicsImpostor.CapsuleImpostor,
-            { mass: 70, restitution: 0.1, friction: 0.8 },
-            this.scene
-        );
+        let physicsImpostor = null;
+        try {
+            physicsImpostor = new BABYLON.PhysicsImpostor(
+                rootMesh,
+                BABYLON.PhysicsImpostor.CapsuleImpostor,
+                { mass: 70, restitution: 0.1, friction: 0.8 },
+                this.scene
+            );
+        } catch (error) {
+            console.warn('Physics not available for player instance:', error);
+        }
         
         return {
             rootMesh: rootMesh,
@@ -249,7 +263,9 @@ export class PlayerLoader {
             physicsImpostor: physicsImpostor,
             type: type,
             config: modelData.config,
-            bodyParts: modelData.bodyParts ? this.cloneBodyParts(modelData.bodyParts, rootMesh) : null
+            bodyParts: modelData.bodyParts ? this.cloneBodyParts(modelData.bodyParts, rootMesh) : null,
+            animations: modelData.animations ? this.cloneAnimations(modelData.animations, rootMesh) : [],
+            hasAnimations: modelData.hasAnimations
         };
     }
     
@@ -264,10 +280,62 @@ export class PlayerLoader {
         return clonedParts;
     }
     
+    cloneAnimations(animations, parentMesh) {
+        const clonedAnimations = [];
+        animations.forEach(anim => {
+            const clonedAnim = anim.clone();
+            clonedAnimations.push(clonedAnim);
+        });
+        return clonedAnimations;
+    }
+    
     updatePlayerAnimation(playerInstance, isMoving, isRunning) {
-        if (!playerInstance.bodyParts) return;
+        // Check if this player instance has animations
+        if (playerInstance.hasAnimations && playerInstance.animations && playerInstance.animations.length > 0) {
+            // Use actual animations from the model
+            this.updateModelAnimations(playerInstance, isMoving, isRunning);
+        } else if (playerInstance.bodyParts) {
+            // Use procedural animations for fallback models
+            this.updateProceduralAnimations(playerInstance, isMoving, isRunning);
+        }
+    }
+    
+    updateModelAnimations(playerInstance, isMoving, isRunning) {
+        // Stop all animations first
+        playerInstance.animations.forEach(anim => {
+            if (anim.isPlaying) {
+                anim.stop();
+            }
+        });
         
-        const { leftArm, rightArm, leftLeg, rightLeg } = playerInstance.bodyParts;
+        if (isMoving) {
+            // Find and play walking/running animation
+            const walkAnim = playerInstance.animations.find(anim => 
+                anim.name.toLowerCase().includes('walk') || 
+                anim.name.toLowerCase().includes('run') ||
+                anim.name.toLowerCase().includes('walking')
+            );
+            
+            if (walkAnim) {
+                walkAnim.loopAnimation = true;
+                walkAnim.play();
+            }
+        } else {
+            // Find and play idle animation
+            const idleAnim = playerInstance.animations.find(anim => 
+                anim.name.toLowerCase().includes('idle') || 
+                anim.name.toLowerCase().includes('standing')
+            );
+            
+            if (idleAnim) {
+                idleAnim.loopAnimation = true;
+                idleAnim.play();
+            }
+        }
+    }
+    
+    updateProceduralAnimations(playerInstance, isMoving, isRunning) {
+        const { leftArm, rightArm, leftLeg, rightLeg, torso } = playerInstance.bodyParts;
         const time = Date.now() * 0.01;
         
         if (isMoving) {
@@ -276,16 +344,18 @@ export class PlayerLoader {
             const amplitude = isRunning ? 0.3 : 0.2;
             
             // Arm swing
-            leftArm.rotation.z = Math.sin(time * speed) * amplitude;
-            rightArm.rotation.z = -Math.sin(time * speed) * amplitude;
+            if (leftArm) leftArm.rotation.z = Math.sin(time * speed) * amplitude;
+            if (rightArm) rightArm.rotation.z = -Math.sin(time * speed) * amplitude;
             
             // Leg movement
-            leftLeg.rotation.z = Math.sin(time * speed) * amplitude;
-            rightLeg.rotation.z = -Math.sin(time * speed) * amplitude;
+            if (leftLeg) leftLeg.rotation.z = Math.sin(time * speed) * amplitude;
+            if (rightLeg) rightLeg.rotation.z = -Math.sin(time * speed) * amplitude;
         } else {
             // Idle animation - subtle breathing
             const breathing = Math.sin(time * 0.5) * 0.02;
-            torso.rotation.z = breathing;
+            if (torso) {
+                torso.rotation.z = breathing;
+            }
         }
     }
     

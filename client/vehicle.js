@@ -34,6 +34,11 @@ export class Vehicle {
     }
     
     async createRealisticVehicle() {
+        if (!this.vehicleLoader) {
+            this.createVehicleMesh();
+            return;
+        }
+        
         // Determine vehicle type based on data or random selection
         const vehicleTypes = this.vehicleLoader.getAvailableTypes();
         const vehicleType = this.data.type || vehicleTypes[Math.floor(Math.random() * vehicleTypes.length)];
@@ -110,23 +115,27 @@ export class Vehicle {
     }
     
     setupPhysics() {
-        // Add physics to vehicle body
-        this.physicsImpostor = new BABYLON.PhysicsImpostor(
-            this.mesh,
-            BABYLON.PhysicsImpostor.BoxImpostor,
-            { mass: 1000, restitution: 0.3, friction: 0.8 },
-            this.scene
-        );
-        
-        // Add physics to wheels
-        this.wheels.forEach(wheel => {
-            wheel.physicsImpostor = new BABYLON.PhysicsImpostor(
-                wheel,
-                BABYLON.PhysicsImpostor.CylinderImpostor,
-                { mass: 50, restitution: 0.3, friction: 0.8 },
+        try {
+            // Add physics to vehicle body
+            this.physicsImpostor = new BABYLON.PhysicsImpostor(
+                this.mesh,
+                BABYLON.PhysicsImpostor.BoxImpostor,
+                { mass: 1000, restitution: 0.3, friction: 0.8 },
                 this.scene
             );
-        });
+            
+            // Add physics to wheels
+            this.wheels.forEach(wheel => {
+                wheel.physicsImpostor = new BABYLON.PhysicsImpostor(
+                    wheel,
+                    BABYLON.PhysicsImpostor.CylinderImpostor,
+                    { mass: 50, restitution: 0.3, friction: 0.8 },
+                    this.scene
+                );
+            });
+        } catch (error) {
+            console.warn('Physics not available for vehicle:', error);
+        }
     }
     
     setupControls() {
@@ -258,10 +267,10 @@ export class Vehicle {
     }
     
     updateWheels() {
-        if (this.vehicleInstance && this.vehicleLoader) {
+        if (this.vehicleInstance && this.vehicleLoader && this.vehicleInstance.wheels) {
             // Use the vehicle loader's wheel update method
             this.vehicleLoader.updateWheels(this.vehicleInstance, this.speed);
-        } else {
+        } else if (this.wheels && this.wheels.length > 0) {
             // Fallback wheel update for simple meshes
             const wheelPositions = [
                 { x: -0.8, y: -0.5, z: -1.5 },
@@ -271,17 +280,19 @@ export class Vehicle {
             ];
             
             this.wheels.forEach((wheel, index) => {
-                const pos = wheelPositions[index];
-                wheel.position = new BABYLON.Vector3(
-                    this.mesh.position.x + pos.x,
-                    this.mesh.position.y + pos.y,
-                    this.mesh.position.z + pos.z
-                );
-                wheel.rotation.y = this.mesh.rotation.y;
-                
-                // Rotate wheels based on speed
-                if (Math.abs(this.speed) > 0.1) {
-                    wheel.rotation.z += this.speed * 0.1;
+                if (wheel && wheelPositions[index]) {
+                    const pos = wheelPositions[index];
+                    wheel.position = new BABYLON.Vector3(
+                        this.mesh.position.x + pos.x,
+                        this.mesh.position.y + pos.y,
+                        this.mesh.position.z + pos.z
+                    );
+                    wheel.rotation.y = this.mesh.rotation.y;
+                    
+                    // Rotate wheels based on speed
+                    if (Math.abs(this.speed) > 0.1) {
+                        wheel.rotation.z += this.speed * 0.1;
+                    }
                 }
             });
         }
