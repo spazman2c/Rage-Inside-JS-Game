@@ -6,7 +6,9 @@ A Babylon.js-based 3D open world multiplayer game with procedurally generated ci
 
 ### Core Gameplay
 - **3D Open World**: Procedurally generated city with urban, industrial, and rural zones
+- **Realistic Human Characters**: Detailed 3D character models with proper proportions
 - **Third-Person Player**: WASD movement with third-person camera follow
+- **Walking Animations**: Realistic arm and leg movement while walking
 - **Driveable Vehicles**: Enter/exit vehicles with physics-based driving mechanics
 - **NPCs with AI**: Civilian and police NPCs with basic behavior patterns
 - **Mission System**: Dynamic missions with triggers, progress tracking, and rewards
@@ -17,6 +19,7 @@ A Babylon.js-based 3D open world multiplayer game with procedurally generated ci
 - **Synced Game State**: Player positions, vehicle states, and mission progress
 - **Shared World**: All players interact in the same procedurally generated world
 - **Unique Avatars**: Each player has a unique character representation
+- **Character Customization**: Clothing and appearance options for players
 
 ### Technical Features
 - **Babylon.js Rendering**: High-performance 3D graphics engine
@@ -91,10 +94,13 @@ The game generates a unique city layout each session with:
 - **Road Network**: Grid-based road system with traffic logic
 
 ### Vehicles
-- **Multiple Vehicle Types**: Cars, trucks, and bikes
+- **Multiple Vehicle Types**: Sedan, Sports Car, SUV, Truck, Police Car, Taxi
+- **Realistic 3D Models**: Detailed vehicle models with proper textures and materials
 - **Physics-Based Driving**: Realistic vehicle physics and handling
 - **Multiplayer Sync**: Vehicle positions and states synced across players
 - **Entry/Exit Mechanics**: Seamless vehicle interaction
+- **Wheel Animation**: Realistic wheel rotation based on speed
+- **Vehicle Customization**: Color and type variations
 
 ### NPCs
 - **Civilian NPCs**: Random walking and idle behavior

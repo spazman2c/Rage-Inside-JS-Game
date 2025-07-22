@@ -1,9 +1,11 @@
 import * as BABYLON from '@babylonjs/core';
+import { PlayerLoader } from './playerLoader.js';
 
 export class Player {
-    constructor(scene, socket) {
+    constructor(scene, socket, playerLoader = null) {
         this.scene = scene;
         this.socket = socket;
+        this.playerLoader = playerLoader;
         this.mesh = null;
         this.camera = null;
         this.controls = {};
@@ -13,14 +15,37 @@ export class Player {
         this.currentVehicle = null;
         this.lastPosition = { x: 0, y: 0, z: 0 };
         this.lastRotation = { y: 0 };
+        this.playerInstance = null;
+        this.playerType = 'male'; // Default player type
         
         this.init();
     }
     
-    init() {
-        this.createPlayerMesh();
+    async init() {
+        if (this.playerLoader) {
+            await this.createRealisticPlayer();
+        } else {
+            this.createPlayerMesh();
+        }
         this.setupControls();
         this.setupCamera();
+    }
+    
+    async createRealisticPlayer() {
+        // Create player instance using the loader
+        this.playerInstance = this.playerLoader.createPlayerInstance(
+            this.playerType,
+            { x: 0, y: 1, z: 0 },
+            { y: 0 }
+        );
+        
+        if (this.playerInstance) {
+            this.mesh = this.playerInstance.rootMesh;
+            this.physicsImpostor = this.playerInstance.physicsImpostor;
+        } else {
+            // Fallback to simple mesh
+            this.createPlayerMesh();
+        }
     }
     
     createPlayerMesh() {
@@ -138,6 +163,7 @@ export class Player {
         
         this.handleMovement();
         this.handleVehicleInteraction();
+        this.updatePlayerAnimation();
         this.syncPosition();
     }
     
@@ -185,6 +211,17 @@ export class Player {
             this.mesh.position.y -= 0.1;
         } else {
             this.mesh.position.y = 1;
+        }
+    }
+    
+    updatePlayerAnimation() {
+        if (this.playerInstance && this.playerLoader) {
+            // Check if player is moving
+            const isMoving = this.controls.forward || this.controls.backward || this.controls.left || this.controls.right;
+            const isRunning = this.controls.forward && (this.controls.left || this.controls.right);
+            
+            // Update player animation
+            this.playerLoader.updatePlayerAnimation(this.playerInstance, isMoving, isRunning);
         }
     }
     

@@ -4,6 +4,7 @@ import { World } from './world.js';
 import { Player } from './player.js';
 import { Vehicle } from './vehicle.js';
 import { VehicleLoader } from './vehicleLoader.js';
+import { PlayerLoader } from './playerLoader.js';
 import { Mission } from './mission.js';
 import { UI } from './ui.js';
 
@@ -17,6 +18,7 @@ class Game {
         this.world = null;
         this.player = null;
         this.vehicleLoader = null;
+        this.playerLoader = null;
         this.vehicles = new Map();
         this.otherPlayers = new Map();
         this.npcs = new Map();
@@ -42,7 +44,8 @@ class Game {
             // Initialize game components
             this.world = new World(this.scene);
             this.vehicleLoader = new VehicleLoader(this.scene);
-            this.player = new Player(this.scene, this.socket);
+            this.playerLoader = new PlayerLoader(this.scene);
+            this.player = new Player(this.scene, this.socket, this.playerLoader);
             this.ui = new UI();
             
             // Make game instance globally accessible
